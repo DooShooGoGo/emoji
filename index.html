@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Emoji Copy Final</title>
+    <title>Emoji Copy V2.1</title>
     <style>
         :root { --ios-bg: #f2f2f7; --ios-blue: #007AFF; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
@@ -12,7 +12,9 @@
             height: 100vh; display: flex; flex-direction: column; 
             background-color: var(--ios-bg); overflow: hidden;
         }
+
         .preview-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        
         .box-wrapper {
             width: 220px; height: 220px; position: relative; background: #e5e5ea;
             border-radius: 50px; display: flex; justify-content: center; align-items: center;
@@ -21,21 +23,41 @@
         .box-wrapper.has-image { background: transparent; transform: scale(1.05); }
         #preview { width: 100%; height: 100%; border-radius: 50px; object-fit: contain; display: block; opacity: 0; }
         #preview.show { opacity: 1; }
+
         .controls {
-            background: white; padding: 30px 20px 60px 20px;
+            background: white; padding: 25px 20px 60px 20px;
             border-top-left-radius: 30px; border-top-right-radius: 30px;
             box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
-            display: flex; flex-direction: column; gap: 15px; align-items: center;
+            display: flex; flex-direction: column; gap: 20px; align-items: center;
         }
+
+        /* 顏色選擇器樣式 */
+        .color-selector {
+            display: flex; gap: 20px; margin-bottom: 5px;
+        }
+        .color-dot {
+            width: 35px; height: 35px; border-radius: 50%; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 3px solid transparent;
+        }
+        .color-dot.active {
+            transform: scale(1.2);
+            border-color: #d1d1d6;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
         input {
             width: 100%; max-width: 320px; padding: 16px; font-size: 24px !important;
             border: 2px solid #efeff4; border-radius: 18px; text-align: center; outline: none; background: #f9f9f9;
         }
+        input:focus { border-color: var(--ios-blue); background: white; }
+
         button {
             width: 100%; max-width: 320px; padding: 18px; font-size: 18px; font-weight: 600;
             border: none; border-radius: 18px; color: white; background: #d1d1d6; transition: 0.2s;
         }
         button:enabled { background: var(--ios-blue); cursor: pointer; }
+
         #toast {
             visibility: hidden; min-width: 200px; background: rgba(0,0,0,0.8); color: white;
             padding: 12px 24px; border-radius: 25px; position: fixed; left: 50%; bottom: 200px;
@@ -50,10 +72,18 @@
             <img id="preview" alt="預覽">
         </div>
     </div>
+
     <div class="controls">
+        <div class="color-selector">
+            <div class="color-dot active" style="background: #f02e1b;" onclick="selectColor(2, this)"></div>
+            <div class="color-dot" style="background: #ffa000;" onclick="selectColor(1, this)"></div>
+            <div class="color-dot" style="background: #00a019;" onclick="selectColor(0, this)"></div>
+        </div>
+
         <input type="text" id="charInput" maxlength="1" placeholder="輸入一個字" autocomplete="off">
         <button id="copyBtn" disabled onclick="copyImg()">複製圖片</button>
     </div>
+
     <div id="toast">已複製 ✨</div>
 
     <script>
@@ -65,11 +95,23 @@
         const wrapper = document.getElementById('wrapper');
         let isComposing = false;
 
+        // 設定顏色配置 (綠、黃、紅)
         const colors = [
-            { s: [{ o: 0, c: '#00a019' }, { o: 0.523, c: '#00be00' }, { o: 1, c: '#00ad00' }] },
-            { s: [{ o: 0, c: '#ffa000' }, { o: 0.326, c: '#ff9b08' }, { o: 1, c: '#f97d00' }] },
-            { s: [{ o: 0, c: '#f02e1b' }, { o: 0.523, c: '#ed2916' }, { o: 1, c: '#cf2010' }] }
+            { s: [{ o: 0, c: '#00a019' }, { o: 0.523, c: '#00be00' }, { o: 1, c: '#00ad00' }] }, // 0: 綠
+            { s: [{ o: 0, c: '#ffa000' }, { o: 0.326, c: '#ff9b08' }, { o: 1, c: '#f97d00' }] }, // 1: 黃
+            { s: [{ o: 0, c: '#f02e1b' }, { o: 0.523, c: '#ed2916' }, { o: 1, c: '#cf2010' }] }  // 2: 紅
         ];
+
+        let selectedColorIndex = 2; // 預設紅色
+
+        function selectColor(index, el) {
+            selectedColorIndex = index;
+            // 切換按鈕樣式
+            document.querySelectorAll('.color-dot').forEach(dot => dot.classList.remove('active'));
+            el.classList.add('active');
+            // 即時更新預覽圖
+            if(input.value.trim()) draw(input.value.trim());
+        }
 
         function drawRoundedRect(ctx, x, y, w, h, r) {
             ctx.beginPath();
@@ -101,17 +143,19 @@
         }
 
         function draw(char) {
-            const conf = colors[Math.floor(Math.random() * colors.length)];
+            const conf = colors[selectedColorIndex];
             const r = 70;
             ctx.clearRect(0, 0, 300, 300);
             ctx.globalCompositeOperation = 'source-over';
             
+            // 1. 背景
             drawRoundedRect(ctx, 0, 0, 300, 300, r);
             const g = ctx.createLinearGradient(0, 0, 0, 300);
             conf.s.forEach(x => g.addColorStop(x.o, x.c));
             ctx.fillStyle = g;
             ctx.fill();
 
+            // 2. 高光
             drawRoundedRect(ctx, 10, 8, 280, 130, r - 10);
             const h = ctx.createLinearGradient(0, 0, 0, 130);
             h.addColorStop(0, 'rgba(255,255,255,0.4)');
@@ -119,6 +163,7 @@
             ctx.fillStyle = h;
             ctx.fill();
 
+            // 3. 底部陰影
             ctx.save();
             drawRoundedRect(ctx, 0, 0, 300, 300, r);
             ctx.clip();
@@ -129,6 +174,7 @@
             ctx.fillRect(0, 200, 300, 100);
             ctx.restore();
 
+            // 4. 文字
             ctx.fillStyle = "white";
             ctx.font = "bold 195px 'PingFang TC', sans-serif";
             ctx.textAlign = "center";
@@ -138,6 +184,7 @@
             ctx.shadowOffsetY = 6;
             ctx.fillText(char, 150, 150);
 
+            // 5. 邊緣裁切
             ctx.save();
             ctx.globalCompositeOperation = 'destination-in';
             drawRoundedRect(ctx, 0, 0, 300, 300, r);
@@ -150,20 +197,16 @@
 
         async function copyImg() {
             try {
-                // 回歸 PNG 格式，確保 iOS 剪貼簿 100% 支援
                 const dataUrl = canvas.toDataURL('image/png');
                 const bin = atob(dataUrl.split(',')[1]);
                 const arr = new Uint8Array(bin.length);
                 for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-                
                 const blob = new Blob([arr], { type: 'image/png' });
                 const item = new ClipboardItem({ 'image/png': blob });
-                
                 await navigator.clipboard.write([item]);
                 toast("已複製 ✨");
             } catch (e) {
-                console.error(e);
-                toast("環境限制，請長按圖片儲存");
+                toast("失敗，請長按儲存");
             }
         }
 
