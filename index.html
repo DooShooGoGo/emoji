@@ -3,29 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Emoji Quick Copy Final</title>
+    <title>Emoji Copy</title>
     <style>
-        :root {
-            --ios-bg: #f2f2f7;
-            --ios-blue: #007AFF;
-        }
+        :root { --ios-bg: #f2f2f7; --ios-blue: #007AFF; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, sans-serif; 
             margin: 0; height: 100vh; display: flex; flex-direction: column; 
             background-color: var(--ios-bg); overflow: hidden;
         }
-        .preview-container {
-            flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px;
-        }
-        #preview {
-            width: 220px; height: 220px; border-radius: 50px; background: #e5e5ea;
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        #preview.has-image { 
-            background: transparent; transform: scale(1.1);
-            filter: drop-shadow(0 12px 24px rgba(0,0,0,0.15));
-        }
+        .preview-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        #preview { width: 220px; height: 220px; border-radius: 50px; background: #e5e5ea; }
+        #preview.has-image { background: transparent; filter: drop-shadow(0 12px 24px rgba(0,0,0,0.15)); }
         .controls {
             background: white; padding: 30px 20px 60px 20px;
             border-top-left-radius: 30px; border-top-right-radius: 30px;
@@ -33,10 +22,129 @@
             display: flex; flex-direction: column; gap: 15px; align-items: center;
         }
         input {
-            width: 100%; max-width: 320px; padding: 16px;
-            font-size: 24px !important; border: 2px solid #efeff4;
-            border-radius: 18px; text-align: center; outline: none; background: #f9f9f9;
+            width: 100%; max-width: 320px; padding: 16px; font-size: 24px !important;
+            border: 2px solid #efeff4; border-radius: 18px; text-align: center; outline: none; background: #f9f9f9;
         }
-        input:focus { border-color: var(--ios-blue); background: white; }
         button {
-            width: 100%; max-width: 320px
+            width: 100%; max-width: 320px; padding: 18px; font-size: 18px; font-weight: 600;
+            border: none; border-radius: 18px; color: white; background: #d1d1d6;
+        }
+        button:enabled { background: var(--ios-blue); }
+        #toast {
+            visibility: hidden; min-width: 200px; background: rgba(0,0,0,0.8); color: white;
+            padding: 12px 24px; border-radius: 25px; position: fixed; left: 50%; bottom: 200px;
+            transform: translateX(-50%); transition: opacity 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="preview-container">
+        <canvas id="canvas" width="300" height="300" style="display:none;"></canvas>
+        <img id="preview">
+    </div>
+
+    <div class="controls">
+        <input type="text" id="charInput" maxlength="1" placeholder="輸入文字" autocomplete="off">
+        <button id="copyBtn" disabled onclick="copyImg()">複製圖片</button>
+    </div>
+
+    <div id="toast">已複製 ✨</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const input = document.getElementById('charInput');
+        const btn = document.getElementById('copyBtn');
+        const preview = document.getElementById('preview');
+        let isComposing = false;
+
+        const colors = [
+            { s: [{ o: 0, c: '#00a019' }, { o: 0.523, c: '#00be00' }, { o: 1, c: '#00ad00' }] },
+            { s: [{ o: 0, c: '#ffa000' }, { o: 0.326, c: '#ff9b08' }, { o: 1, c: '#f97d00' }] },
+            { s: [{ o: 0, c: '#f02e1b' }, { o: 0.523, c: '#ed2916' }, { o: 1, c: '#cf2010' }] }
+        ];
+
+        input.addEventListener('compositionstart', () => isComposing = true);
+        input.addEventListener('compositionend', () => { isComposing = false; update(); });
+        input.addEventListener('input', () => { if(!isComposing) update(); });
+
+        function update() {
+            const char = input.value.trim();
+            if(char) {
+                draw(char);
+                btn.disabled = false;
+                preview.classList.add('has-image');
+            } else {
+                btn.disabled = true;
+                preview.src = '';
+                preview.classList.remove('has-image');
+            }
+        }
+
+        function draw(char) {
+            const conf = colors[Math.floor(Math.random() * colors.length)];
+            ctx.clearRect(0,0,300,300);
+            
+            // 背景
+            ctx.beginPath();
+            ctx.roundRect(0,0,300,300,70);
+            const g = ctx.createLinearGradient(0,0,0,300);
+            conf.s.forEach(x => g.addColorStop(x.o, x.c));
+            ctx.fillStyle = g;
+            ctx.fill();
+
+            // 高光
+            ctx.beginPath();
+            ctx.roundRect(10,8,280,130,70);
+            const h = ctx.createLinearGradient(0,0,0,130);
+            h.addColorStop(0, 'rgba(255,255,255,0.4)');
+            h.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = h;
+            ctx.fill();
+
+            // 深色底
+            ctx.beginPath();
+            ctx.roundRect(0,200,300,100,{tl:0,tr:0,bl:70,br:70});
+            const d = ctx.createLinearGradient(0,200,0,300);
+            d.addColorStop(0,'rgba(0,0,0,0)');
+            d.addColorStop(1,'rgba(0,0,0,0.3)');
+            ctx.fillStyle = d;
+            ctx.fill();
+
+            // 字
+            ctx.fillStyle = "white";
+            ctx.font = "bold 200px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.shadowColor = "rgba(0,0,0,0.2)";
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetY = 8;
+            ctx.fillText(char, 150, 150);
+
+            preview.src = canvas.toDataURL('image/png');
+        }
+
+        async function copyImg() {
+            try {
+                const dataUrl = canvas.toDataURL('image/png');
+                const bin = atob(dataUrl.split(',')[1]);
+                const arr = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                const blob = new Blob([arr], { type: 'image/png' });
+                const item = new ClipboardItem({ 'image/png': blob });
+                await navigator.clipboard.write([item]);
+                toast("已複製 ✨");
+            } catch (e) {
+                toast("失敗，請長按圖片");
+            }
+        }
+
+        function toast(m) {
+            const t = document.getElementById('toast');
+            t.innerText = m; t.style.visibility = 'visible'; t.style.opacity = '1';
+            setTimeout(() => { t.style.visibility = 'hidden'; t.style.opacity = '0'; }, 2000);
+        }
+    </script>
+</body>
+</html>
