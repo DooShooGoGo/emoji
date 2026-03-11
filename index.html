@@ -13,7 +13,7 @@
         /* 強制所有元素使用 border-box，確保寬度計算一致 */
         * {
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent; /* 移除手機點擊藍色高亮 */
+            -webkit-tap-highlight-color: transparent;
         }
 
         body { 
@@ -26,6 +26,7 @@
             overflow: hidden;
         }
         
+        /* 預覽區域 */
         .preview-container {
             flex: 1;
             display: flex;
@@ -48,6 +49,7 @@
             filter: drop-shadow(0 12px 24px rgba(0,0,0,0.15));
         }
 
+        /* 底部操作面板 */
         .controls {
             background: white;
             padding: 30px 20px 60px 20px;
@@ -64,15 +66,13 @@
             width: 100%;
             max-width: 320px;
             padding: 16px;
-            font-size: 24px;
+            font-size: 24px !important; /* 強制 24px 防止 iOS 聚焦時畫面縮放 */
             border: 2px solid #efeff4;
             border-radius: 18px;
             text-align: center;
             outline: none;
             background: #f9f9f9;
             transition: border-color 0.2s;
-            /* 修正 iOS 輸入框自動放大問題 */
-            font-size: 24px !important; 
         }
 
         input:focus { border-color: var(--ios-blue); background: white; }
@@ -92,6 +92,7 @@
         button:disabled { background: #d1d1d6; color: #8e8e93; cursor: not-allowed; }
         button:active { transform: scale(0.96); opacity: 0.9; }
 
+        /* Toast 提示 */
         #toast {
             visibility: hidden;
             min-width: 220px;
@@ -132,22 +133,23 @@
         const preview = document.getElementById('preview');
         let isComposing = false;
 
+        // 精確還原 SVG 的漸層色值
         const colorConfigs = [
-            { 
+            { // 綠色
                 stops: [
                     { offset: 0, color: '#00a019' },
                     { offset: 0.523, color: '#00be00' },
                     { offset: 1, color: '#00ad00' }
                 ]
             },
-            { 
+            { // 黃色
                 stops: [
                     { offset: 0, color: '#ffa000' },
                     { offset: 0.326, color: '#ff9b08' },
                     { offset: 1, color: '#f97d00' }
                 ]
             },
-            { 
+            { // 紅色
                 stops: [
                     { offset: 0, color: '#f02e1b' },
                     { offset: 0.523, color: '#ed2916' },
@@ -200,7 +202,7 @@
             ctx.fillStyle = highlight;
             ctx.fill();
 
-            // C. 底部深色層
+            // C. 底部深色層 (同步圓角)
             ctx.beginPath();
             ctx.roundRect(0, 200, 300, 100, {tl: 0, tr: 0, bl: r, br: r});
             const bottomGlow = ctx.createLinearGradient(0, 200, 0, 300);
@@ -209,7 +211,7 @@
             ctx.fillStyle = bottomGlow;
             ctx.fill();
 
-            // D. 文字 (居中 150)
+            // D. 文字繪製 (垂直置中 150)
             ctx.fillStyle = "white";
             ctx.font = "bold 200px 'PingFang TC', 'STHeiti', sans-serif";
             ctx.textAlign = "center";
@@ -222,25 +224,25 @@
             preview.src = canvas.toDataURL('image/png');
         }
 
-        // 優化後的 iOS Safari 複製函式
-        async function copyImg() {
-            const dataUrl = preview.src;
-            if (!dataUrl) return;
-
-            try {
-                // 將 Base64 轉換為 Blob
-                const response = await fetch(dataUrl);
-                const blob = await response.blob();
-                
-                // iOS Safari 要求的寫法
-                const item = new ClipboardItem({ [blob.type]: blob });
-                await navigator.clipboard.write([item]);
-                
-                showToast("成功複製圖片！✨");
-            } catch (e) {
-                console.error("Clipboard Error:", e);
-                showToast("複製失敗，請長按圖片儲存");
+        // --- 針對 iOS Safari 進行優化的複製函式 ---
+        function copyImg() {
+            if (!window.ClipboardItem) {
+                showToast("您的瀏覽器不支援直接複製圖片");
+                return;
             }
+
+            // 直接將 Canvas 轉成 Blob，這是 iOS 最能接受的「同步觸發」路徑
+            canvas.toBlob(async (blob) => {
+                if (!blob) return;
+                try {
+                    const data = [new ClipboardItem({ [blob.type]: blob })];
+                    await navigator.clipboard.write(data);
+                    showToast("成功複製圖片！✨");
+                } catch (e) {
+                    console.error("Clipboard Error:", e);
+                    showToast("複製失敗，請長按圖片儲存");
+                }
+            }, 'image/png');
         }
 
         function showToast(msg) {
