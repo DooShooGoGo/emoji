@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Emoji Quick Copy Ultra</title>
+    <style>
+        :root {
+            --ios-bg: #f2f2f7;
+            --ios-blue: #007AFF;
+        }
+
+        /* 強制所有元素使用 border-box，確保寬度計算一致 */
+        * {
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            background-color: var(--ios-bg);
+            overflow: hidden;
+        }
+        
+        .preview-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #preview {
+            width: 220px;
+            height: 220px;
+            border-radius: 50px;
+            background: #e5e5ea;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #preview.has-image { 
+            background: transparent; 
+            transform: scale(1.1);
+            filter: drop-shadow(0 12px 24px rgba(0,0,0,0.15));
+        }
+
+        .controls {
+            background: white;
+            padding: 30px 20px 60px 20px;
+            border-top-left-radius: 30px;
+            border-top-right-radius: 30px;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        input {
+            width: 100%;
+            max-width: 320px; /* 與按鈕一致 */
+            padding: 16px;
+            font-size: 24px;
+            border: 2px solid #efeff4;
+            border-radius: 18px;
+            text-align: center;
+            outline: none;
+            background: #f9f9f9;
+            transition: border-color 0.2s;
+        }
+
+        input:focus { border-color: var(--ios-blue); background: white; }
+
+        button {
+            width: 100%;
+            max-width: 320px; /* 與輸入框一致 */
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 18px;
+            transition: all 0.2s;
+        }
+
+        button:enabled { background: var(--ios-blue); color: white; cursor: pointer; }
+        button:disabled { background: #d1d1d6; color: #8e8e93; cursor: not-allowed; }
+        button:active { transform: scale(0.96); opacity: 0.9; }
+
+        #toast {
+            visibility: hidden;
+            min-width: 220px;
+            background-color: rgba(0,0,0,0.8);
+            color: #fff;
+            text-align: center;
+            border-radius: 30px;
+            padding: 14px 28px;
+            position: fixed;
+            z-index: 100;
+            left: 50%;
+            bottom: 180px;
+            transform: translateX(-50%);
+            transition: opacity 0.3s, bottom 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="preview-container">
+        <canvas id="canvas" width="300" height="300" style="display:none;"></canvas>
+        <img id="preview" alt="">
+    </div>
+
+    <div class="controls">
+        <input type="text" id="charInput" maxlength="1" placeholder="輸入一個中文字" autocomplete="off">
+        <button id="copyBtn" disabled onclick="copyImg()">複製圖片</button>
+    </div>
+
+    <div id="toast">已複製到剪貼簿 ✨</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const input = document.getElementById('charInput');
+        const btn = document.getElementById('copyBtn');
+        const preview = document.getElementById('preview');
+        let isComposing = false;
+
+        // 轉換自你提供的 SVG 參數
+        const colorConfigs = [
+            { // 綠色
+                stops: [
+                    { offset: 0, color: '#00a019' },
+                    { offset: 0.523, color: '#00be00' },
+                    { offset: 1, color: '#00ad00' }
+                ]
+            },
+            { // 黃色
+                stops: [
+                    { offset: 0, color: '#ffa000' },
+                    { offset: 0.326, color: '#ff9b08' },
+                    { offset: 1, color: '#f97d00' }
+                ]
+            },
+            { // 紅色
+                stops: [
+                    { offset: 0, color: '#f02e1b' },
+                    { offset: 0.523, color: '#ed2916' },
+                    { offset: 1, color: '#cf2010' }
+                ]
+            }
+        ];
+
+        input.addEventListener('compositionstart', () => { isComposing = true; });
+        input.addEventListener('compositionend', () => {
+            isComposing = false;
+            handleUpdate();
+        });
+        input.addEventListener('input', () => {
+            if (!isComposing) handleUpdate();
+        });
+
+        function handleUpdate() {
+            const val = input.value.trim();
+            if (val.length > 0) {
+                generate(val);
+                btn.disabled = false;
+                preview.classList.add('has-image');
+            } else {
+                btn.disabled = true;
+                preview.src = "";
+                preview.classList.remove('has-image');
+            }
+        }
+
+        function generate(char) {
+            const config = colorConfigs[Math.floor(Math.random() * colorConfigs.length)];
+            const r = 70;
+            ctx.clearRect(0,0,300,300);
+
+            // A. 背景漸層
+            ctx.beginPath();
+            ctx.roundRect(0, 0, 300, 300, r);
+            const grad = ctx.createLinearGradient(0, 0, 0, 300);
+            config.stops.forEach(s => grad.addColorStop(s.offset, s.color));
+            ctx.fillStyle = grad;
+            ctx.fill();
+
+            // B. 頂部高光
+            ctx.beginPath();
+            ctx.roundRect(10, 8, 280, 130, r); 
+            const highlight = ctx.createLinearGradient(0, 0, 0, 130);
+            highlight.addColorStop(0, 'rgba(255,255,255,0.4)');
+            highlight.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = highlight;
+            ctx.fill();
+
+            // C. 底部深色層 (同步圓角)
+            ctx.beginPath();
+            ctx.roundRect(0, 200, 300, 100, {tl: 0, tr: 0, bl: r, br: r});
+            const bottomGlow = ctx.createLinearGradient(0, 200, 0, 300);
+            bottomGlow.addColorStop(0, 'rgba(0,0,0,0)');
+            bottomGlow.addColorStop(1, 'rgba(0,0,0,0.3)');
+            ctx.fillStyle = bottomGlow;
+            ctx.fill();
+
+            // D. 文字 (居中 150)
+            ctx.fillStyle = "white";
+            ctx.font = "bold 200px 'PingFang TC', 'STHeiti', sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.shadowColor = "rgba(0,0,0,0.2)";
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetY = 8;
+            ctx.fillText(char, 150, 150); 
+
+            preview.src = canvas.toDataURL('image/png');
+        }
+
+        async function copyImg() {
+            try {
+                const response = await fetch(preview.src);
+                const blob = await response.blob();
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob })
+                ]);
+                showToast("成功複製圖片！✨");
+            } catch(e) {
+                showToast("請長按圖片手動儲存");
+            }
+        }
+
+        function showToast(msg) {
+            const x = document.getElementById("toast");
+            x.innerText = msg;
+            x.style.visibility = "visible";
+            x.style.opacity = "1";
+            x.style.bottom = "200px";
+            setTimeout(() => { 
+                x.style.visibility = "hidden"; 
+                x.style.opacity = "0";
+                x.style.bottom = "180px";
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
