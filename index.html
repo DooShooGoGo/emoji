@@ -13,6 +13,7 @@
         /* 強制所有元素使用 border-box，確保寬度計算一致 */
         * {
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent; /* 移除手機點擊藍色高亮 */
         }
 
         body { 
@@ -61,7 +62,7 @@
 
         input {
             width: 100%;
-            max-width: 320px; /* 與按鈕一致 */
+            max-width: 320px;
             padding: 16px;
             font-size: 24px;
             border: 2px solid #efeff4;
@@ -70,13 +71,15 @@
             outline: none;
             background: #f9f9f9;
             transition: border-color 0.2s;
+            /* 修正 iOS 輸入框自動放大問題 */
+            font-size: 24px !important; 
         }
 
         input:focus { border-color: var(--ios-blue); background: white; }
 
         button {
             width: 100%;
-            max-width: 320px; /* 與輸入框一致 */
+            max-width: 320px;
             padding: 18px;
             font-size: 18px;
             font-weight: 600;
@@ -92,7 +95,7 @@
         #toast {
             visibility: hidden;
             min-width: 220px;
-            background-color: rgba(0,0,0,0.8);
+            background-color: rgba(0,0,0,0.85);
             color: #fff;
             text-align: center;
             border-radius: 30px;
@@ -100,9 +103,10 @@
             position: fixed;
             z-index: 100;
             left: 50%;
-            bottom: 180px;
+            bottom: 200px;
             transform: translateX(-50%);
             transition: opacity 0.3s, bottom 0.3s;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -114,7 +118,7 @@
     </div>
 
     <div class="controls">
-        <input type="text" id="charInput" maxlength="1" placeholder="輸入一個中文字" autocomplete="off">
+        <input type="text" id="charInput" maxlength="1" placeholder="輸入一個中文字" autocomplete="off" autofocus>
         <button id="copyBtn" disabled onclick="copyImg()">複製圖片</button>
     </div>
 
@@ -128,23 +132,22 @@
         const preview = document.getElementById('preview');
         let isComposing = false;
 
-        // 轉換自你提供的 SVG 參數
         const colorConfigs = [
-            { // 綠色
+            { 
                 stops: [
                     { offset: 0, color: '#00a019' },
                     { offset: 0.523, color: '#00be00' },
                     { offset: 1, color: '#00ad00' }
                 ]
             },
-            { // 黃色
+            { 
                 stops: [
                     { offset: 0, color: '#ffa000' },
                     { offset: 0.326, color: '#ff9b08' },
                     { offset: 1, color: '#f97d00' }
                 ]
             },
-            { // 紅色
+            { 
                 stops: [
                     { offset: 0, color: '#f02e1b' },
                     { offset: 0.523, color: '#ed2916' },
@@ -197,7 +200,7 @@
             ctx.fillStyle = highlight;
             ctx.fill();
 
-            // C. 底部深色層 (同步圓角)
+            // C. 底部深色層
             ctx.beginPath();
             ctx.roundRect(0, 200, 300, 100, {tl: 0, tr: 0, bl: r, br: r});
             const bottomGlow = ctx.createLinearGradient(0, 200, 0, 300);
@@ -219,16 +222,24 @@
             preview.src = canvas.toDataURL('image/png');
         }
 
+        // 優化後的 iOS Safari 複製函式
         async function copyImg() {
+            const dataUrl = preview.src;
+            if (!dataUrl) return;
+
             try {
-                const response = await fetch(preview.src);
+                // 將 Base64 轉換為 Blob
+                const response = await fetch(dataUrl);
                 const blob = await response.blob();
-                await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': blob })
-                ]);
+                
+                // iOS Safari 要求的寫法
+                const item = new ClipboardItem({ [blob.type]: blob });
+                await navigator.clipboard.write([item]);
+                
                 showToast("成功複製圖片！✨");
-            } catch(e) {
-                showToast("請長按圖片手動儲存");
+            } catch (e) {
+                console.error("Clipboard Error:", e);
+                showToast("複製失敗，請長按圖片儲存");
             }
         }
 
@@ -237,11 +248,11 @@
             x.innerText = msg;
             x.style.visibility = "visible";
             x.style.opacity = "1";
-            x.style.bottom = "200px";
+            x.style.bottom = "220px";
             setTimeout(() => { 
                 x.style.visibility = "hidden"; 
                 x.style.opacity = "0";
-                x.style.bottom = "180px";
+                x.style.bottom = "200px";
             }, 2500);
         }
     </script>
