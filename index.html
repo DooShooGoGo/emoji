@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Emoji Copy V3.0.9 Pure Transparent</title>
+    <title>Emoji Copy V3.0.10 Final</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -50,12 +50,13 @@
         .color-dot { width: 35px; height: 35px; border-radius: 50%; border: 3px solid transparent; }
         .color-dot.active { transform: scale(1.2); border-color: #d1d1d6; }
         
-        .input-group { width: 100%; max-width: 320px; position: relative; }
         input {
-            width: 100%; padding: 16px; font-size: 20px;
+            width: 100%; max-width: 320px; padding: 16px; font-size: 20px;
             border: 2px solid #efeff4; border-radius: 18px; outline: none; background: #f9f9f9;
         }
+        .input-group { width: 100%; max-width: 320px; position: relative; }
         .input-hint { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #8e8e93; pointer-events: none; }
+        
         button { width: 100%; max-width: 320px; padding: 18px; font-size: 18px; font-weight: 600; border: none; border-radius: 18px; color: white; background: #d1d1d6; }
         button:enabled { background: var(--ios-blue); }
         
@@ -91,7 +92,7 @@
 
     <script>
         const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d', { alpha: true });
+        const ctx = canvas.getContext('2d');
         const input = document.getElementById('charInput');
         const btn = document.getElementById('copyBtn');
         const preview = document.getElementById('preview');
@@ -104,9 +105,9 @@
         let isComposing = false;
 
         const colors = [
-            { s: [{ o: 0, c: '#00a019' }, { o: 0.523, c: '#00be00' }, { o: 1, c: '#00ad00' }] }, 
-            { s: [{ o: 0, c: '#ffa000' }, { o: 0.326, c: '#ff9b08' }, { o: 1, c: '#f97d00' }] }, 
-            { s: [{ o: 0, c: '#f02e1b' }, { o: 0.523, c: '#ed2916' }, { o: 1, c: '#cf2010' }] }  
+            { s: [{ o: 0, c: '#00a019' }, { o: 0.5, c: '#00be00' }, { o: 1, c: '#00ad00' }] }, 
+            { s: [{ o: 0, c: '#ffa000' }, { o: 0.3, c: '#ff9b08' }, { o: 1, c: '#f97d00' }] }, 
+            { s: [{ o: 0, c: '#f02e1b' }, { o: 0.5, c: '#ed2916' }, { o: 1, c: '#cf2010' }] }  
         ];
 
         function setMode(mode) {
@@ -144,33 +145,33 @@
             ctx.save();
             ctx.translate(x, 0);
 
-            // 1. 先建立路徑並裁切，確保不畫到邊框外
+            // 嚴格裁切
             ctx.beginPath();
-            drawRoundedRect(ctx, 0, 0, size, size, r);
+            drawRoundedRect(ctx, 0.5, 0.5, size-1, size-1, r);
             ctx.clip();
 
-            // 2. 填充漸層背景
+            // 背景
             const grad = ctx.createLinearGradient(0, 0, 0, size);
             conf.s.forEach(s => grad.addColorStop(s.o, s.c));
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, size, size);
 
-            // 3. 高光
+            // 高光
             ctx.beginPath();
             drawRoundedRect(ctx, size*0.03, size*0.02, size*0.94, size*0.43, r*0.8);
             const h = ctx.createLinearGradient(0, 0, 0, size*0.43);
             h.addColorStop(0, 'rgba(255,255,255,0.4)'); h.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.fillStyle = h; ctx.fill();
 
-            // 4. 底部加深
+            // 底部加深
             const d = ctx.createLinearGradient(0, size*0.66, 0, size);
-            d.addColorStop(0, 'rgba(0,0,0,0)'); d.addColorStop(1, 'rgba(0,0,0,0.3)');
+            d.addColorStop(0, 'rgba(0,0,0,0)'); d.addColorStop(1, 'rgba(0,0,0,0.2)');
             ctx.fillStyle = d; ctx.fillRect(0, size*0.66, size, size*0.34);
 
-            // 5. 文字
-            ctx.fillStyle = "white"; ctx.font = `bold ${Math.floor(size*0.65)}px 'PingFang TC', sans-serif`;
+            // 文字 - 移除陰影確保 Alpha 純淨
+            ctx.fillStyle = "white"; 
+            ctx.font = `bold ${Math.floor(size*0.65)}px -apple-system, BlinkMacSystemFont, sans-serif`;
             ctx.textAlign = "center"; ctx.textBaseline = "middle";
-            ctx.shadowColor = "rgba(0,0,0,0.15)"; ctx.shadowBlur = 4; ctx.shadowOffsetY = 2;
             ctx.fillText(c, size/2, size/2);
             
             ctx.restore();
@@ -196,8 +197,8 @@
             } else {
                 const size = 90; const padding = 8;
                 const chars = Array.from(val).slice(0, 5);
-                let targetWidth = chars.length * size + (chars.length - 1) * padding;
-                canvas.width = targetWidth % 2 === 0 ? targetWidth : targetWidth + 1;
+                const w = chars.length * size + (chars.length - 1) * padding;
+                canvas.width = (w % 2 === 0) ? w : w + 1;
                 canvas.height = size;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 let lastIdx = -1;
@@ -209,7 +210,6 @@
                 });
             }
 
-            // 關鍵：將 DataURL 產生的結果直接賦值，不加品質參數
             preview.src = canvas.toDataURL('image/png');
             preview.classList.add('show');
             wrapper.classList.add('has-image');
@@ -219,11 +219,16 @@
         async function copyImg() {
             try {
                 const dataUrl = canvas.toDataURL('image/png');
-                const response = await fetch(dataUrl);
-                const blob = await response.blob();
-                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                const bin = atob(dataUrl.split(',')[1]);
+                const array = new Uint8Array(bin.length);
+                for (let i = 0; i < bin.length; i++) array[i] = bin.charCodeAt(i);
+                const blob = new Blob([array], { type: 'image/png' });
+                const item = new ClipboardItem({ 'image/png': blob });
+                await navigator.clipboard.write([item]);
                 toast("已複製 ✨");
-            } catch (e) { toast("失敗，請長按儲存"); }
+            } catch (e) {
+                toast("失敗，請長按儲存");
+            }
         }
 
         function toast(m) {
