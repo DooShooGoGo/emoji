@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Emoji Copy V3.1.0</title>
+    <title>Emoji Copy V3.1.1 Final</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="apple-touch-icon" href="icon.png">
@@ -63,13 +63,12 @@
 
     <script>
         const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: true });
         const input = document.getElementById('charInput');
         const btn = document.getElementById('copyBtn');
         const preview = document.getElementById('preview');
         const wrapper = document.getElementById('wrapper');
         const hint = document.getElementById('limitHint');
-        const colorPicker = document.getElementById('colorPicker');
         
         let currentMode = 'single';
         let selectedColorIndex = 2;
@@ -89,11 +88,11 @@
             wrapper.classList.remove('has-image', 'multi-mode');
             if(mode === 'single') {
                 input.maxLength = 1; input.placeholder = "輸入一個字"; input.style.textAlign = "center";
-                hint.style.display = "none"; colorPicker.classList.remove('hidden');
+                hint.style.display = "none"; document.getElementById('colorPicker').classList.remove('hidden');
                 wrapper.style.width = "180px"; wrapper.style.background = "#e5e5ea";
             } else {
                 input.maxLength = 5; input.placeholder = "輸入文字"; input.style.textAlign = "left";
-                hint.style.display = "block"; colorPicker.classList.add('hidden');
+                hint.style.display = "block"; document.getElementById('colorPicker').classList.add('hidden');
                 wrapper.style.background = "transparent"; wrapper.classList.add('multi-mode');
             }
         }
@@ -105,45 +104,33 @@
             if(input.value.trim()) draw();
         }
 
-        function drawPath(c, x, y, w, h, r) {
-            c.beginPath(); c.moveTo(x + r, y);
-            c.lineTo(x + w - r, y); c.quadraticCurveTo(x + w, y, x + w, y + r);
-            c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-            c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r);
-            c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y); c.closePath();
-        }
-
         function paintChar(c, x, size, r, colorIdx) {
             const conf = colors[colorIdx];
             ctx.save();
             ctx.translate(x, 0);
 
-            // 背景裁切路徑
-            drawPath(ctx, 0, 0, size, size, r);
+            // 核心路徑繪製：確保無邊緣雜訊
+            ctx.beginPath();
+            ctx.moveTo(r, 0); ctx.lineTo(size-r, 0); ctx.quadraticCurveTo(size, 0, size, r);
+            ctx.lineTo(size, size-r); ctx.quadraticCurveTo(size, size, size-r, size);
+            ctx.lineTo(r, size); ctx.quadraticCurveTo(0, size, 0, size-r);
+            ctx.lineTo(0, r); ctx.quadraticCurveTo(0, 0, r, 0);
+            ctx.closePath();
             ctx.clip();
 
-            // 填充漸層 (手動填滿確保無縫隙)
+            // 漸層填充
             const grad = ctx.createLinearGradient(0, 0, 0, size);
             conf.s.forEach(s => grad.addColorStop(s.o, s.c));
             ctx.fillStyle = grad;
-            ctx.fillRect(-1, -1, size + 2, size + 2);
+            ctx.fillRect(0, 0, size, size);
 
-            // 高光
-            drawPath(ctx, size*0.03, size*0.02, size*0.94, size*0.43, r*0.8);
-            const h = ctx.createLinearGradient(0, 0, 0, size*0.43);
-            h.addColorStop(0, 'rgba(255,255,255,0.4)'); h.addColorStop(1, 'rgba(255,255,255,0)');
-            ctx.fillStyle = h; ctx.fill();
-
-            // 底部加深
-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            ctx.fillRect(0, size*0.66, size, size*0.34);
-
-            // 文字
+            // 高光與文字
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillRect(0, 0, size, size * 0.4);
             ctx.fillStyle = "white"; 
-            ctx.font = `bold ${Math.floor(size*0.65)}px -apple-system, sans-serif`;
+            ctx.font = `bold ${Math.floor(size*0.65)}px -apple-system`;
             ctx.textAlign = "center"; ctx.textBaseline = "middle";
             ctx.fillText(c, size/2, size/2);
-            
             ctx.restore();
         }
 
@@ -160,29 +147,26 @@
                 return;
             }
 
-            // 物理強制重置
-            canvas.width = 0; 
+            // 物理初始化：強制 iOS Safari 刷新緩衝區
+            canvas.width = (currentMode === 'single') ? 180 : (Array.from(val).length * 90 + (Array.from(val).length - 1) * 8);
+            canvas.height = (currentMode === 'single') ? 180 : 90;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if(currentMode === 'single') {
-                canvas.width = 180; canvas.height = 180;
-                ctx.clearRect(0, 0, 180, 180);
                 paintChar(val[0], 0, 180, 42, selectedColorIndex);
             } else {
-                const size = 90; const padding = 8;
                 const chars = Array.from(val).slice(0, 5);
-                const w = chars.length * size + (chars.length - 1) * padding;
-                canvas.width = w; canvas.height = size;
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
                 let lastIdx = -1;
                 chars.forEach((c, i) => {
                     let rIdx;
                     do { rIdx = Math.floor(Math.random()*3); } while(rIdx === lastIdx);
                     lastIdx = rIdx;
-                    paintChar(c, i*(size+padding), size, 22, rIdx);
+                    paintChar(c, i * 98, 90, 22, rIdx);
                 });
             }
 
             preview.src = canvas.toDataURL('image/png');
+            preview.style.display = 'block';
             preview.classList.add('show');
             wrapper.classList.add('has-image');
             btn.disabled = false;
@@ -190,14 +174,11 @@
 
         async function copyImg() {
             try {
-                const dataUrl = canvas.toDataURL('image/png');
-                const bin = atob(dataUrl.split(',')[1]);
-                const array = new Uint8Array(bin.length);
-                for (let i = 0; i < bin.length; i++) array[i] = bin.charCodeAt(i);
-                const blob = new Blob([array], { type: 'image/png' });
+                // 使用原生的同步轉換，避開非同步環境權限流失
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
                 toast("已複製 ✨");
-            } catch (e) { toast("失敗，請長按儲存"); }
+            } catch (e) { toast("環境限制，請長按儲存"); }
         }
 
         function toast(m) {
