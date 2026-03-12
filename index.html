@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Emoji Copy V3.0.4</title>
+    <title>Emoji Copy V3.0.5 Final</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -18,14 +18,15 @@
             background-color: var(--ios-bg); overflow: hidden;
         }
 
-        .header { padding: 20px 20px 10px; display: flex; justify-content: center; }
+        /* 修正：增加頂部間距避開 iPhone 鏡頭 */
+        .header { padding: 55px 20px 10px; display: flex; justify-content: center; }
         .segmented-control {
             display: flex; background: var(--ios-segment); border-radius: 10px;
             padding: 2px; width: 100%; max-width: 320px;
         }
         .segment {
             flex: 1; text-align: center; padding: 8px 0; font-size: 14px; font-weight: 600;
-            border-radius: 8px; cursor: pointer; color: #8e8e93;
+            border-radius: 8px; cursor: pointer; color: #8e8e93; transition: 0.2s;
         }
         .segment.active { background: white; color: black; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
 
@@ -35,8 +36,7 @@
         }
         
         .box-wrapper {
-            width: 180px; height: 180px;
-            position: relative; background: #e5e5ea;
+            width: 180px; height: 180px; position: relative; background: #e5e5ea;
             border-radius: 42px; display: flex; justify-content: center; align-items: center;
             transition: all 0.2s;
         }
@@ -150,7 +150,7 @@
             } else {
                 input.maxLength = 5; input.placeholder = "輸入文字"; input.style.textAlign = "left";
                 hint.style.display = "block"; colorPicker.classList.add('hidden');
-                wrapper.classList.add('multi-mode');
+                wrapper.style.background = "transparent"; wrapper.classList.add('multi-mode');
             }
         }
 
@@ -171,23 +171,29 @@
             const conf = colors[colorIdx];
             ctx.save();
             ctx.translate(x, 0);
+            
+            // 重要：建立獨立裁剪區，確保背景透明
             ctx.beginPath();
             drawRoundedRect(ctx, 0, 0, size, size, r);
             ctx.clip();
 
+            // 1. 背景漸層
             const grad = ctx.createLinearGradient(0, 0, 0, size);
             conf.s.forEach(s => grad.addColorStop(s.o, s.c));
             ctx.fillStyle = grad; ctx.fill();
 
+            // 2. 高光
             drawRoundedRect(ctx, size*0.03, size*0.02, size*0.94, size*0.43, r*0.8);
             const h = ctx.createLinearGradient(0, 0, 0, size*0.43);
             h.addColorStop(0, 'rgba(255,255,255,0.4)'); h.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.fillStyle = h; ctx.fill();
 
+            // 3. 底部加深
             const d = ctx.createLinearGradient(0, size*0.66, 0, size);
             d.addColorStop(0, 'rgba(0,0,0,0)'); d.addColorStop(1, 'rgba(0,0,0,0.3)');
             ctx.fillStyle = d; ctx.fillRect(0, size*0.66, size, size*0.34);
 
+            // 4. 文字
             ctx.fillStyle = "white"; ctx.font = `bold ${size*0.65}px 'PingFang TC', sans-serif`;
             ctx.textAlign = "center"; ctx.textBaseline = "middle";
             ctx.shadowColor = "rgba(0,0,0,0.15)"; ctx.shadowBlur = size*0.03; ctx.shadowOffsetY = size*0.02;
@@ -209,18 +215,19 @@
                 return;
             }
 
+            // 清理畫布為完全透明
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
             if(currentMode === 'single') {
                 canvas.width = 180; canvas.height = 180;
-                ctx.clearRect(0,0,180,180);
                 paintChar(val[0], 0, 180, 42, selectedColorIndex);
             } else {
                 const size = 100; 
-                const padding = 8; // 已修改為 8px
+                const padding = 8;
                 const chars = Array.from(val).slice(0, 5);
                 const count = chars.length;
                 canvas.width = count * size + (count - 1) * padding;
                 canvas.height = size;
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
                 let lastIdx = -1;
                 chars.forEach((c, i) => {
@@ -231,6 +238,7 @@
                 });
             }
 
+            // 統一導出 PNG 確保透明度支援
             preview.src = canvas.toDataURL('image/png');
             preview.classList.add('show');
             wrapper.classList.add('has-image');
@@ -239,14 +247,20 @@
 
         async function copyImg() {
             try {
+                // 強制導出 PNG Blob 解決 iOS 黑底 Bug
                 const dataUrl = canvas.toDataURL('image/png');
                 const bin = atob(dataUrl.split(',')[1]);
                 const arr = new Uint8Array(bin.length);
                 for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                
                 const blob = new Blob([arr], { type: 'image/png' });
                 const item = new ClipboardItem({ 'image/png': blob });
-                await navigator.clipboard.write([item]); toast("已複製 ✨");
-            } catch (e) { toast("失敗，請長按儲存"); }
+                
+                await navigator.clipboard.write([item]);
+                toast("已複製 ✨");
+            } catch (e) {
+                toast("失敗，請長按儲存");
+            }
         }
 
         function toast(m) {
