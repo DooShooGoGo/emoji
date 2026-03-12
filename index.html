@@ -3,85 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Emoji Copy V3.0.5 Final</title>
-    
+    <title>Emoji Copy V3.0.6 Final</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <link rel="apple-touch-icon" href="icon.png">
-    
     <style>
         :root { --ios-bg: #f2f2f7; --ios-blue: #007AFF; --ios-segment: #eeeeef; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; 
-            height: 100vh; display: flex; flex-direction: column; 
-            background-color: var(--ios-bg); overflow: hidden;
-        }
-
-        /* 修正：增加頂部間距避開 iPhone 鏡頭 */
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; height: 100vh; display: flex; flex-direction: column; background-color: var(--ios-bg); overflow: hidden; }
         .header { padding: 55px 20px 10px; display: flex; justify-content: center; }
-        .segmented-control {
-            display: flex; background: var(--ios-segment); border-radius: 10px;
-            padding: 2px; width: 100%; max-width: 320px;
-        }
-        .segment {
-            flex: 1; text-align: center; padding: 8px 0; font-size: 14px; font-weight: 600;
-            border-radius: 8px; cursor: pointer; color: #8e8e93; transition: 0.2s;
-        }
+        .segmented-control { display: flex; background: var(--ios-segment); border-radius: 10px; padding: 2px; width: 100%; max-width: 320px; }
+        .segment { flex: 1; text-align: center; padding: 8px 0; font-size: 14px; font-weight: 600; border-radius: 8px; cursor: pointer; color: #8e8e93; }
         .segment.active { background: white; color: black; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-
-        .preview-container { 
-            flex: 1; display: flex; justify-content: center; align-items: center; 
-            padding: 20px; min-height: 250px;
-        }
-        
-        .box-wrapper {
-            width: 180px; height: 180px; position: relative; background: #e5e5ea;
-            border-radius: 42px; display: flex; justify-content: center; align-items: center;
-            transition: all 0.2s;
-        }
+        .preview-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; min-height: 250px; }
+        .box-wrapper { width: 180px; height: 180px; position: relative; background: #e5e5ea; border-radius: 42px; display: flex; justify-content: center; align-items: center; }
         .box-wrapper.multi-mode { background: transparent !important; width: auto !important; }
         .box-wrapper.has-image { background: transparent; transform: scale(1.05); }
-
-        #preview { 
-            max-width: 90vw; max-height: 200px; 
-            object-fit: contain; display: none;
-        }
+        #preview { max-width: 90vw; max-height: 200px; object-fit: contain; display: none; }
         #preview.show { display: block; }
-
-        .controls {
-            background: white; padding: 25px 20px 60px 20px;
-            border-top-left-radius: 30px; border-top-right-radius: 30px;
-            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
-            display: flex; flex-direction: column; gap: 20px; align-items: center;
-        }
-
+        .controls { background: white; padding: 25px 20px 60px 20px; border-top-left-radius: 30px; border-top-right-radius: 30px; box-shadow: 0 -5px 20px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 20px; align-items: center; }
         .color-selector { display: flex; gap: 20px; }
         .color-selector.hidden { display: none; }
         .color-dot { width: 35px; height: 35px; border-radius: 50%; border: 3px solid transparent; }
         .color-dot.active { transform: scale(1.2); border-color: #d1d1d6; }
-
         .input-group { width: 100%; max-width: 320px; position: relative; }
-        input {
-            width: 100%; padding: 16px; font-size: 20px;
-            border: 2px solid #efeff4; border-radius: 18px; outline: none; background: #f9f9f9;
-        }
-        .input-hint {
-            position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
-            font-size: 12px; color: #8e8e93; pointer-events: none;
-        }
-
-        button {
-            width: 100%; max-width: 320px; padding: 18px; font-size: 18px; font-weight: 600;
-            border: none; border-radius: 18px; color: white; background: #d1d1d6;
-        }
+        input { width: 100%; padding: 16px; font-size: 20px; border: 2px solid #efeff4; border-radius: 18px; outline: none; background: #f9f9f9; }
+        .input-hint { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #8e8e93; pointer-events: none; }
+        button { width: 100%; max-width: 320px; padding: 18px; font-size: 18px; font-weight: 600; border: none; border-radius: 18px; color: white; background: #d1d1d6; }
         button:enabled { background: var(--ios-blue); }
-
-        #toast {
-            visibility: hidden; width: fit-content; background: rgba(0,0,0,0.8); color: white;
-            padding: 12px 24px; border-radius: 30px; position: fixed; left: 50%; bottom: 200px;
-            transform: translateX(-50%); transition: opacity 0.3s; z-index: 100; text-align: center;
-        }
+        #toast { visibility: hidden; width: fit-content; background: rgba(0,0,0,0.8); color: white; padding: 12px 24px; border-radius: 30px; position: fixed; left: 50%; bottom: 200px; transform: translateX(-50%); transition: opacity 0.3s; z-index: 100; text-align: center; }
     </style>
 </head>
 <body>
@@ -91,49 +41,44 @@
             <div id="seg-multi" class="segment" onclick="setMode('multi')">多字</div>
         </div>
     </div>
-
     <div class="preview-container">
         <div id="wrapper" class="box-wrapper">
             <canvas id="canvas" style="display:none;"></canvas>
             <img id="preview" alt="預覽">
         </div>
     </div>
-
     <div class="controls">
         <div id="colorPicker" class="color-selector">
             <div class="color-dot active" style="background: #f02e1b;" onclick="selectColor(2, this)"></div>
             <div class="color-dot" style="background: #ffa000;" onclick="selectColor(1, this)"></div>
             <div class="color-dot" style="background: #00a019;" onclick="selectColor(0, this)"></div>
         </div>
-
         <div class="input-group">
             <input type="text" id="charInput" maxlength="1" placeholder="輸入一個字" autocomplete="off">
             <span id="limitHint" class="input-hint" style="display:none;">（最多五個字）</span>
         </div>
-        
         <button id="copyBtn" disabled onclick="copyImg()">複製圖片</button>
     </div>
-
     <div id="toast">已複製 ✨</div>
 
     <script>
         const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        // 加入 willReadFrequently 提升穩定性
+        const ctx = canvas.getContext('2d', { alpha: true, willReadFrequently: true });
         const input = document.getElementById('charInput');
         const btn = document.getElementById('copyBtn');
         const preview = document.getElementById('preview');
         const wrapper = document.getElementById('wrapper');
         const hint = document.getElementById('limitHint');
-        const colorPicker = document.getElementById('colorPicker');
         
         let currentMode = 'single';
         let selectedColorIndex = 2;
         let isComposing = false;
 
         const colors = [
-            { s: [{ o: 0, c: '#00a019' }, { o: 0.523, c: '#00be00' }, { o: 1, c: '#00ad00' }] }, 
-            { s: [{ o: 0, c: '#ffa000' }, { o: 0.326, c: '#ff9b08' }, { o: 1, c: '#f97d00' }] }, 
-            { s: [{ o: 0, c: '#f02e1b' }, { o: 0.523, c: '#ed2916' }, { o: 1, c: '#cf2010' }] }  
+            { s: [{ o: 0, c: '#00a019' }, { o: 0.5, c: '#00be00' }, { o: 1, c: '#00ad00' }] }, 
+            { s: [{ o: 0, c: '#ffa000' }, { o: 0.3, c: '#ff9b08' }, { o: 1, c: '#f97d00' }] }, 
+            { s: [{ o: 0, c: '#f02e1b' }, { o: 0.5, c: '#ed2916' }, { o: 1, c: '#cf2010' }] }  
         ];
 
         function setMode(mode) {
@@ -142,14 +87,13 @@
             document.getElementById('seg-multi').classList.toggle('active', mode === 'multi');
             input.value = ''; btn.disabled = true; preview.classList.remove('show');
             wrapper.classList.remove('has-image', 'multi-mode');
-            
             if(mode === 'single') {
                 input.maxLength = 1; input.placeholder = "輸入一個字"; input.style.textAlign = "center";
-                hint.style.display = "none"; colorPicker.classList.remove('hidden');
+                hint.style.display = "none"; document.getElementById('colorPicker').classList.remove('hidden');
                 wrapper.style.width = "180px"; wrapper.style.background = "#e5e5ea";
             } else {
                 input.maxLength = 5; input.placeholder = "輸入文字"; input.style.textAlign = "left";
-                hint.style.display = "block"; colorPicker.classList.add('hidden');
+                hint.style.display = "block"; document.getElementById('colorPicker').classList.add('hidden');
                 wrapper.style.background = "transparent"; wrapper.classList.add('multi-mode');
             }
         }
@@ -171,34 +115,29 @@
             const conf = colors[colorIdx];
             ctx.save();
             ctx.translate(x, 0);
-            
-            // 重要：建立獨立裁剪區，確保背景透明
+
             ctx.beginPath();
             drawRoundedRect(ctx, 0, 0, size, size, r);
             ctx.clip();
 
-            // 1. 背景漸層
             const grad = ctx.createLinearGradient(0, 0, 0, size);
             conf.s.forEach(s => grad.addColorStop(s.o, s.c));
             ctx.fillStyle = grad; ctx.fill();
 
-            // 2. 高光
             drawRoundedRect(ctx, size*0.03, size*0.02, size*0.94, size*0.43, r*0.8);
             const h = ctx.createLinearGradient(0, 0, 0, size*0.43);
             h.addColorStop(0, 'rgba(255,255,255,0.4)'); h.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.fillStyle = h; ctx.fill();
 
-            // 3. 底部加深
             const d = ctx.createLinearGradient(0, size*0.66, 0, size);
             d.addColorStop(0, 'rgba(0,0,0,0)'); d.addColorStop(1, 'rgba(0,0,0,0.3)');
             ctx.fillStyle = d; ctx.fillRect(0, size*0.66, size, size*0.34);
 
-            // 4. 文字
-            ctx.fillStyle = "white"; ctx.font = `bold ${size*0.65}px 'PingFang TC', sans-serif`;
+            ctx.fillStyle = "white"; 
+            ctx.font = `bold ${size*0.65}px -apple-system, "PingFang TC", sans-serif`;
             ctx.textAlign = "center"; ctx.textBaseline = "middle";
             ctx.shadowColor = "rgba(0,0,0,0.15)"; ctx.shadowBlur = size*0.03; ctx.shadowOffsetY = size*0.02;
             ctx.fillText(c, size/2, size/2);
-            
             ctx.restore();
         }
 
@@ -215,31 +154,35 @@
                 return;
             }
 
-            // 清理畫布為完全透明
+            const charArray = Array.from(val);
+            // 修正：先設定畫布尺寸（這會自動清空並初始化 alpha 通道）
+            if(currentMode === 'single') {
+                canvas.width = 180; canvas.height = 180;
+            } else {
+                const size = 100; const padding = 8;
+                const count = Math.min(charArray.length, 5);
+                canvas.width = count * size + (count - 1) * padding;
+                canvas.height = size;
+            }
+            
+            // 確保透明底色
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if(currentMode === 'single') {
-                canvas.width = 180; canvas.height = 180;
-                paintChar(val[0], 0, 180, 42, selectedColorIndex);
+                paintChar(charArray[0], 0, 180, 42, selectedColorIndex);
             } else {
-                const size = 100; 
-                const padding = 8;
-                const chars = Array.from(val).slice(0, 5);
-                const count = chars.length;
-                canvas.width = count * size + (count - 1) * padding;
-                canvas.height = size;
-                
+                const chars = charArray.slice(0, 5);
                 let lastIdx = -1;
                 chars.forEach((c, i) => {
                     let rIdx;
                     do { rIdx = Math.floor(Math.random()*3); } while(rIdx === lastIdx);
                     lastIdx = rIdx;
-                    paintChar(c, i*(size+padding), size, 24, rIdx);
+                    paintChar(c, i * 108, 100, 24, rIdx);
                 });
             }
 
-            // 統一導出 PNG 確保透明度支援
             preview.src = canvas.toDataURL('image/png');
+            preview.style.display = 'block';
             preview.classList.add('show');
             wrapper.classList.add('has-image');
             btn.disabled = false;
@@ -247,19 +190,14 @@
 
         async function copyImg() {
             try {
-                // 強制導出 PNG Blob 解決 iOS 黑底 Bug
-                const dataUrl = canvas.toDataURL('image/png');
-                const bin = atob(dataUrl.split(',')[1]);
-                const arr = new Uint8Array(bin.length);
-                for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-                
-                const blob = new Blob([arr], { type: 'image/png' });
-                const item = new ClipboardItem({ 'image/png': blob });
-                
-                await navigator.clipboard.write([item]);
-                toast("已複製 ✨");
+                // 使用原生 toBlob 處理透明度最穩定
+                canvas.toBlob(async (blob) => {
+                    const data = [new ClipboardItem({ [blob.type]: blob })];
+                    await navigator.clipboard.write(data);
+                    toast("已複製 ✨");
+                }, 'image/png');
             } catch (e) {
-                toast("失敗，請長按儲存");
+                toast("失敗，請長按預覽圖儲存");
             }
         }
 
