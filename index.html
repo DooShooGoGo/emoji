@@ -109,7 +109,6 @@
             ctx.save();
             ctx.translate(x, 0);
 
-            // 核心路徑繪製：確保無邊緣雜訊
             ctx.beginPath();
             ctx.moveTo(r, 0); ctx.lineTo(size-r, 0); ctx.quadraticCurveTo(size, 0, size, r);
             ctx.lineTo(size, size-r); ctx.quadraticCurveTo(size, size, size-r, size);
@@ -118,13 +117,11 @@
             ctx.closePath();
             ctx.clip();
 
-            // 漸層填充
             const grad = ctx.createLinearGradient(0, 0, 0, size);
             conf.s.forEach(s => grad.addColorStop(s.o, s.c));
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, size, size);
 
-            // 高光與文字
             ctx.fillStyle = 'rgba(255,255,255,0.3)';
             ctx.fillRect(0, 0, size, size * 0.4);
             ctx.fillStyle = "white"; 
@@ -147,15 +144,22 @@
                 return;
             }
 
-            // 物理初始化：強制 iOS Safari 刷新緩衝區
-            canvas.width = (currentMode === 'single') ? 180 : (Array.from(val).length * 90 + (Array.from(val).length - 1) * 8);
-            canvas.height = (currentMode === 'single') ? 180 : 90;
+            // 修正點：確保每次繪製都重新設定寬度並徹底清除背景
+            const charArray = Array.from(val);
+            if(currentMode === 'single') {
+                canvas.width = 180;
+                canvas.height = 180;
+            } else {
+                canvas.width = (charArray.length * 90 + (charArray.length - 1) * 8);
+                canvas.height = 90;
+            }
+            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if(currentMode === 'single') {
-                paintChar(val[0], 0, 180, 42, selectedColorIndex);
+                paintChar(charArray[0], 0, 180, 42, selectedColorIndex);
             } else {
-                const chars = Array.from(val).slice(0, 5);
+                const chars = charArray.slice(0, 5);
                 let lastIdx = -1;
                 chars.forEach((c, i) => {
                     let rIdx;
@@ -174,7 +178,6 @@
 
         async function copyImg() {
             try {
-                // 使用原生的同步轉換，避開非同步環境權限流失
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
                 toast("已複製 ✨");
