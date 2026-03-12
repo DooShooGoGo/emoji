@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Emoji Copy V3.0.6 Telegram Fix</title>
+    <title>Emoji Copy V3.0.9 Pure Transparent</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -24,19 +24,21 @@
         }
         .segment {
             flex: 1; text-align: center; padding: 8px 0; font-size: 14px; font-weight: 600;
-            border-radius: 8px; cursor: pointer; color: #8e8e93; transition: 0.2s;
+            border-radius: 8px; cursor: pointer; color: #8e8e93;
         }
         .segment.active { background: white; color: black; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .preview-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; min-height: 250px; }
+        
         .box-wrapper {
             width: 180px; height: 180px; position: relative; background: #e5e5ea;
             border-radius: 42px; display: flex; justify-content: center; align-items: center;
-            transition: all 0.2s;
         }
         .box-wrapper.multi-mode { background: transparent !important; width: auto !important; }
         .box-wrapper.has-image { background: transparent; transform: scale(1.05); }
+
         #preview { max-width: 90vw; max-height: 200px; object-fit: contain; display: none; }
         #preview.show { display: block; }
+
         .controls {
             background: white; padding: 25px 20px 60px 20px;
             border-top-left-radius: 30px; border-top-right-radius: 30px;
@@ -47,6 +49,7 @@
         .color-selector.hidden { display: none; }
         .color-dot { width: 35px; height: 35px; border-radius: 50%; border: 3px solid transparent; }
         .color-dot.active { transform: scale(1.2); border-color: #d1d1d6; }
+        
         .input-group { width: 100%; max-width: 320px; position: relative; }
         input {
             width: 100%; padding: 16px; font-size: 20px;
@@ -55,6 +58,7 @@
         .input-hint { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #8e8e93; pointer-events: none; }
         button { width: 100%; max-width: 320px; padding: 18px; font-size: 18px; font-weight: 600; border: none; border-radius: 18px; color: white; background: #d1d1d6; }
         button:enabled { background: var(--ios-blue); }
+        
         #toast { visibility: hidden; width: fit-content; background: rgba(0,0,0,0.8); color: white; padding: 12px 24px; border-radius: 30px; position: fixed; left: 50%; bottom: 200px; transform: translateX(-50%); transition: opacity 0.3s; z-index: 100; text-align: center; }
     </style>
 </head>
@@ -87,7 +91,7 @@
 
     <script>
         const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d', { alpha: true }); // 明確宣告支援透明
+        const ctx = canvas.getContext('2d', { alpha: true });
         const input = document.getElementById('charInput');
         const btn = document.getElementById('copyBtn');
         const preview = document.getElementById('preview');
@@ -139,23 +143,36 @@
             const conf = colors[colorIdx];
             ctx.save();
             ctx.translate(x, 0);
+
+            // 1. 先建立路徑並裁切，確保不畫到邊框外
             ctx.beginPath();
             drawRoundedRect(ctx, 0, 0, size, size, r);
             ctx.clip();
+
+            // 2. 填充漸層背景
             const grad = ctx.createLinearGradient(0, 0, 0, size);
             conf.s.forEach(s => grad.addColorStop(s.o, s.c));
-            ctx.fillStyle = grad; ctx.fill();
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, size, size);
+
+            // 3. 高光
+            ctx.beginPath();
             drawRoundedRect(ctx, size*0.03, size*0.02, size*0.94, size*0.43, r*0.8);
             const h = ctx.createLinearGradient(0, 0, 0, size*0.43);
             h.addColorStop(0, 'rgba(255,255,255,0.4)'); h.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.fillStyle = h; ctx.fill();
+
+            // 4. 底部加深
             const d = ctx.createLinearGradient(0, size*0.66, 0, size);
             d.addColorStop(0, 'rgba(0,0,0,0)'); d.addColorStop(1, 'rgba(0,0,0,0.3)');
             ctx.fillStyle = d; ctx.fillRect(0, size*0.66, size, size*0.34);
-            ctx.fillStyle = "white"; ctx.font = `bold ${size*0.65}px 'PingFang TC', sans-serif`;
+
+            // 5. 文字
+            ctx.fillStyle = "white"; ctx.font = `bold ${Math.floor(size*0.65)}px 'PingFang TC', sans-serif`;
             ctx.textAlign = "center"; ctx.textBaseline = "middle";
-            ctx.shadowColor = "rgba(0,0,0,0.15)"; ctx.shadowBlur = size*0.03; ctx.shadowOffsetY = size*0.02;
+            ctx.shadowColor = "rgba(0,0,0,0.15)"; ctx.shadowBlur = 4; ctx.shadowOffsetY = 2;
             ctx.fillText(c, size/2, size/2);
+            
             ctx.restore();
         }
 
@@ -171,14 +188,16 @@
                 if(currentMode === 'single') wrapper.style.background = "#e5e5ea";
                 return;
             }
+
             if(currentMode === 'single') {
                 canvas.width = 180; canvas.height = 180;
-                ctx.clearRect(0,0,180,180);
+                ctx.clearRect(0, 0, 180, 180);
                 paintChar(val[0], 0, 180, 42, selectedColorIndex);
             } else {
-                const size = 100; const padding = 8;
+                const size = 90; const padding = 8;
                 const chars = Array.from(val).slice(0, 5);
-                canvas.width = chars.length * size + (chars.length - 1) * padding;
+                let targetWidth = chars.length * size + (chars.length - 1) * padding;
+                canvas.width = targetWidth % 2 === 0 ? targetWidth : targetWidth + 1;
                 canvas.height = size;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 let lastIdx = -1;
@@ -186,10 +205,12 @@
                     let rIdx;
                     do { rIdx = Math.floor(Math.random()*3); } while(rIdx === lastIdx);
                     lastIdx = rIdx;
-                    paintChar(c, i*(size+padding), size, 24, rIdx);
+                    paintChar(c, i*(size+padding), size, 22, rIdx);
                 });
             }
-            preview.src = canvas.toDataURL('image/png', 1.0);
+
+            // 關鍵：將 DataURL 產生的結果直接賦值，不加品質參數
+            preview.src = canvas.toDataURL('image/png');
             preview.classList.add('show');
             wrapper.classList.add('has-image');
             btn.disabled = false;
@@ -197,12 +218,9 @@
 
         async function copyImg() {
             try {
-                // 核心修復：使用 Blob 時明確定義 PNG 屬性
-                const dataUrl = canvas.toDataURL('image/png', 1.0);
-                const bin = atob(dataUrl.split(',')[1]);
-                const arr = new Uint8Array(bin.length);
-                for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-                const blob = new Blob([arr], { type: 'image/png' });
+                const dataUrl = canvas.toDataURL('image/png');
+                const response = await fetch(dataUrl);
+                const blob = await response.blob();
                 await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
                 toast("已複製 ✨");
             } catch (e) { toast("失敗，請長按儲存"); }
